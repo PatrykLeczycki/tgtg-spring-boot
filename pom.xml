@@ -76,6 +76,11 @@
             <artifactId>javax.mail-api</artifactId>
             <version>1.6.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.5.2</version>
+        </dependency>
         <!-- JSON Web Token Support -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -89,6 +94,7 @@
         </dependency>
     </dependencies>
     <build>
+        <finalName>tgtg-spring</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
