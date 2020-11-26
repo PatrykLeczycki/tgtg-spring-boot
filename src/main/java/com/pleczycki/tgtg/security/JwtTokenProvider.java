@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.security;
 
-import com.pleczycki.tgtg.config.JwtConfig;
+import com.pleczycki.tgtg.config.AppConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -20,46 +20,46 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     @Autowired
-    private JwtConfig jwtConfig;
+    private AppConfig appConfig;
 
     public String generateToken(Authentication authentication) {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        Date expirationDate = new Date(new Date().getTime() + jwtConfig.getJwtExpirationInMs());
+        Date expirationDate = new Date(new Date().getTime() + appConfig.getJwtExpirationInMs());
 
         return Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
                 .setIssuedAt(new Date())
                 .setExpiration(expirationDate)
-                .signWith(SignatureAlgorithm.HS512, jwtConfig.getJwtSecret())
+                .signWith(SignatureAlgorithm.HS512, appConfig.getJwtSecret())
                 .claim("username", userPrincipal.getUsername())
                 .claim("email", userPrincipal.getEmail())
                 .claim("roles", userPrincipal.getAuthorities())
                 .compact();
     }
 
-    Long getUserIdFromJWT(String token) {
+    public Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtConfig.getJwtSecret())
+                .setSigningKey(appConfig.getJwtSecret())
                 .parseClaimsJws(token)
                 .getBody();
 
         return Long.parseLong(claims.getSubject());
     }
 
-    boolean validateToken(String authToken) {
+    public boolean validateToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(jwtConfig.getJwtSecret()).parseClaimsJws(authToken);
+            Jwts.parser().setSigningKey(appConfig.getJwtSecret()).parseClaimsJws(authToken);
             return true;
         } catch (SignatureException ex) {
-            log.error("Invalid JWT signature");
+            log.error("Invalid JWT signature = " + authToken);
         } catch (MalformedJwtException ex) {
-            log.error("Invalid JWT token");
+            log.error("Invalid JWT token = " + authToken);
         } catch (ExpiredJwtException ex) {
-            log.error("Expired JWT token");
+            log.error("Expired JWT token = " + authToken);
         } catch (UnsupportedJwtException ex) {
-            log.error("Unsupported JWT token");
+            log.error("Unsupported JWT token = " + authToken);
         } catch (IllegalArgumentException ex) {
             log.error("JWT claims string is empty.");
         }
