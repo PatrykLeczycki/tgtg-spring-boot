@@ -1,5 +1,6 @@
 package com.pleczycki.tgtg.service;
 
+import com.pleczycki.tgtg.config.AppConfig;
 import com.pleczycki.tgtg.dto.UserDto;
 import com.pleczycki.tgtg.model.RoleName;
 import com.pleczycki.tgtg.model.User;
@@ -32,6 +33,9 @@ import javax.validation.Valid;
 public class AuthenticationService {
 
     @Autowired
+    private AppConfig appConfig;
+
+    @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
@@ -55,10 +59,10 @@ public class AuthenticationService {
     @Transactional
     public ResponseEntity<?> register(UserDto userDto) {
 
-        if (userRepository.existsByEmail(userDto.getEmail()))
+        if (userRepository.existsByEmail(userDto.getEmail())) {
             return new ResponseEntity(new ApiResponse(false, "Email is already used!"),
                     HttpStatus.BAD_REQUEST);
-        else {
+        } else {
             User user = modelMapper.map(userDto, User.class);
             user.setCreatedAt(new Date());
             user.setUsername("");
@@ -112,7 +116,7 @@ public class AuthenticationService {
 
         User user = optionalUser.get();
 
-        if(!user.isEnabled()) {
+        if (!user.isEnabled()) {
             user.setRegistrationToken(RandomStringUtils.randomAlphanumeric(30));
             User save = userRepository.save(user);
             new Thread(() -> resendConfirmationLinkEmail(save.getEmail())).start();
@@ -131,7 +135,8 @@ public class AuthenticationService {
 
         User user = optionalUser.get();
         user.setPassRecoveryToken(RandomStringUtils.randomAlphanumeric(30));
-        return new ResponseEntity(new ApiResponse(true, "Message with password retrieve link sent successfully"), HttpStatus.OK);
+        return new ResponseEntity(new ApiResponse(true, "Message with password retrieve link sent successfully"),
+                HttpStatus.OK);
     }
 
     @Transactional
@@ -146,7 +151,8 @@ public class AuthenticationService {
             new Thread(() -> sendPasswordChangeEmail(user.getEmail())).start();
             userRepository.save(user);
         } else {
-            return new ResponseEntity(new ApiResponse(false, "Invalid password recovery token"), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity(new ApiResponse(false, "Invalid password recovery token"),
+                    HttpStatus.BAD_REQUEST);
         }
 
         return new ResponseEntity(new ApiResponse(true, "Password changed successfully"), HttpStatus.OK);
@@ -177,7 +183,8 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
+        String url = appConfig.getWebsiteUrl() +
+                "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Dziękujemy za zarejestrowanie się na naszej stronie. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
         String buttonLabel = "Potwierdzenie rejestracji";
@@ -190,7 +197,7 @@ public class AuthenticationService {
         }
     }
 
-    public void resendConfirmationLinkEmail(String receiverEmail) {
+    private void resendConfirmationLinkEmail(String receiverEmail) {
 
         Optional<User> optionalUser = userRepository.findByEmail(receiverEmail);
 
@@ -199,7 +206,8 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
+        String url = appConfig.getWebsiteUrl() +
+                "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ podczas prośby o ponowne wysłanie linku aktywacyjnego został podany Twój adres mailowy. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
         String buttonLabel = "Potwierdzenie rejestracji";
@@ -221,7 +229,9 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/retrievePassword?userId=" + user.getId() + "&token=" + user.getPassRecoveryToken();
+        String url = appConfig.getWebsiteUrl() +
+                "/retrievePassword?userId=" + user.getId() + "&token=" + user
+                .getPassRecoveryToken();
 
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ podczas prośby o odzyskanie hasła został podany Twój adres mailowy. Kliknij w poniższy link, aby odzyskać hasło:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
@@ -242,7 +252,7 @@ public class AuthenticationService {
         String buttonLabel = "Logowanie";
         String subject = "Too Good To Go - hasło zostało zmienione";
 
-        String url = "http://tgtg-polska.pl/auth";
+        String url = appConfig.getWebsiteUrl() + "/auth";
 
         try {
             sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
@@ -251,19 +261,20 @@ public class AuthenticationService {
         }
     }
 
-    private void sendEmail(String email, String firstParagraph, String secondParagraph, String url, String buttonLabel, String subject)
+    private void sendEmail(String email, String firstParagraph, String secondParagraph, String url, String buttonLabel,
+            String subject)
             throws FileNotFoundException {
 
-        File text = new File("/usr/local/bin/tgtg/registration-email.html");
-//        File text = new File("C:\\Users\\Patryk\\Documents\\tgtg\\src\\main\\resources\\registration-email.html");
+        File text = new File(appConfig.getEmailMessageFilePath());
 
-        //Creating Scanner instnace to read File in Java
-        Scanner scanner = new Scanner(text);
-        String emailHtml = "";
-        //Reading each line of file using Scanner class
+        String emailHtml;
 
-        while (scanner.hasNextLine()) {
-            emailHtml += scanner.nextLine() + "\n";
+        try (Scanner sc = new Scanner(text)) {
+            StringBuilder emailHtmlBuilder = new StringBuilder();
+            while (sc.hasNextLine()) {
+                emailHtmlBuilder.append(sc.nextLine()).append("\n");
+            }
+            emailHtml = emailHtmlBuilder.toString();
         }
 
         emailHtml = emailHtml
@@ -271,7 +282,8 @@ public class AuthenticationService {
                 .replace("{buttonLabel}", buttonLabel)
                 .replace("{firstParagraph}", firstParagraph)
                 .replace("{secondParagraph}", secondParagraph)
-                .replace("{url}", url);
+                .replace("{buttonUrl}", url)
+                .replace("{websiteUrl}", appConfig.getWebsiteUrl());
 
         mailer.send(email, subject, emailHtml);
     }

@@ -1,5 +1,6 @@
 package com.pleczycki.tgtg.config;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -10,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@Getter
 @RequiredArgsConstructor
 public class AppConfig implements WebMvcConfigurer {
 
@@ -28,13 +30,14 @@ public class AppConfig implements WebMvcConfigurer {
     @Value("${app.jwtExpirationInMs}")
     private int jwtExpirationInMs;
 
-    public String getJwtSecret() {
-        return jwtSecret;
-    }
+    @Value("${app.emailPasswordFilePath}")
+    private String emailPasswordFilePath;
 
-    public int getJwtExpirationInMs() {
-        return jwtExpirationInMs;
-    }
+    @Value("${app.emailMessageFilePath}")
+    private String emailMessageFilePath;
+
+    @Value("${app.websiteUrl}")
+    private String websiteUrl;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {

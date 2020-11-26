@@ -1,5 +1,7 @@
 package com.pleczycki.tgtg.utils;
 
+import com.pleczycki.tgtg.config.AppConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -12,6 +14,9 @@ import javax.mail.internet.MimeMessage;
 
 @Component
 public class Mailer {
+
+    @Autowired
+    private AppConfig appConfig;
 
     public void send(String to, String sub, String msg) {
 
@@ -45,9 +50,7 @@ public class Mailer {
     }
 
     public String getPassword() {
-        File file = new File("/usr/local/bin/tgtg/data.txt");
-
-//        File file = new File("C:\\Users\\Patryk\\Documents\\tgtg\\data.txt");
+        File file = new File(appConfig.getEmailPasswordFilePath());
         String password = "";
 
         try (Scanner scan = new Scanner(file)) {
