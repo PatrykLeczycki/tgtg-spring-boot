@@ -1,15 +1,20 @@
 package com.pleczycki.tgtg.model;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString.Exclude;
 
+import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 @Entity
 @NoArgsConstructor
-@Getter
+@Data
 @Table(name = "user", uniqueConstraints = {
         @UniqueConstraint(columnNames = {
                 "email"
@@ -27,26 +32,37 @@ public class User {
 
     private String password;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    private boolean enabled;
+
+    private String registrationToken;
+
+    private String passRecoveryToken;
+
+    @Column(nullable = false)
+    @NotNull
+    private Date createdAt;
+
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
                joinColumns = @JoinColumn(name = "user_id"),
                inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
+    //    @OneToMany(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
+    @OneToMany
+    @JoinTable(name = "user_review", joinColumns = @JoinColumn(name = "user_id"),
+               inverseJoinColumns = @JoinColumn(name = "review_id"))
+    private List<Review> reviews;
+
+    @Exclude
+//    @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
+    @ManyToMany
+    @JoinTable(name = "user_blacklist", joinColumns = @JoinColumn(name = "user_id"),
+               inverseJoinColumns = @JoinColumn(name = "location_id"))
+    private List<Location> locationsBlacklist;
+
     public User(String email, String password) {
         this.email = email;
         this.password = password;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
     }
 }

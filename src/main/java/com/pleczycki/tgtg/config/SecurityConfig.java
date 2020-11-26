@@ -3,6 +3,7 @@ package com.pleczycki.tgtg.config;
 import com.pleczycki.tgtg.security.JwtAuthenticationEntryPoint;
 import com.pleczycki.tgtg.security.JwtAuthenticationFilter;
 import com.pleczycki.tgtg.service.CustomUserDetailsService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,12 +71,30 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/auth/**")
+                .antMatchers(
+                        "/auth/**",
+                        "/blacklist/all",
+                        "/blacklist/count/**",
+                        "/review/all",
+                        "/review/latest",
+                        "/review/location/{id}/latest",
+                        "/location/all",
+                        "/location/map",
+                        "/location/map/latest",
+                        "/location/all/**",
+                        "/files",
+                        "/files/**",
+                        "/**/*.png")
                 .permitAll()
+//                .antMatchers("/location/{id}", "/review/{id}").access("@securityConfig.checkLocationId(#id)")
                 .anyRequest()
                 .authenticated();
 
         // Our custom JWT security filter
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+    }
+
+    public boolean checkLocationId(String id) {
+        return StringUtils.isNumeric(id);
     }
 }
