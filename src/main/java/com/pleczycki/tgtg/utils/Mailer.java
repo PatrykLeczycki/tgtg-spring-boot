@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.utils;
 
-import com.pleczycki.tgtg.config.AppConfig;
+import com.pleczycki.tgtg.config.EnvConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ import javax.mail.internet.MimeMessage;
 public class Mailer {
 
     @Autowired
-    private AppConfig appConfig;
+    private EnvConfig envConfig;
 
     public void send(String to, String sub, String msg) {
 
@@ -50,7 +50,7 @@ public class Mailer {
     }
 
     public String getPassword() {
-        File file = new File(appConfig.getEmailPasswordFilePath());
+        File file = new File(envConfig.getEmailPasswordFilePath());
         String password = "";
 
         try (Scanner scan = new Scanner(file)) {

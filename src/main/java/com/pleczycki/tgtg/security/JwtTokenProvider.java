@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.security;
 
-import com.pleczycki.tgtg.config.AppConfig;
+import com.pleczycki.tgtg.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -20,37 +20,43 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     @Autowired
-    private AppConfig appConfig;
+    private JwtConfig jwtConfig;
 
     public String generateToken(Authentication authentication) {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        Date expirationDate = new Date(new Date().getTime() + appConfig.getJwtExpirationInMs());
+        Date expirationDate = new Date(new Date().getTime() + jwtConfig.getExpirationInMs());
+
+        log.info(String.valueOf(jwtConfig.getExpirationInMs()));
+        log.info(String.valueOf(jwtConfig.getSecret()));
 
         return Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
                 .setIssuedAt(new Date())
                 .setExpiration(expirationDate)
-                .signWith(SignatureAlgorithm.HS512, appConfig.getJwtSecret())
+                .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())
                 .claim("username", userPrincipal.getUsername())
                 .claim("email", userPrincipal.getEmail())
                 .claim("roles", userPrincipal.getAuthorities())
                 .compact();
     }
 
-    public Long getUserIdFromJWT(String token) {
+    Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(appConfig.getJwtSecret())
+                .setSigningKey(jwtConfig.getSecret())
                 .parseClaimsJws(token)
                 .getBody();
+        log.info(String.valueOf(jwtConfig.getSecret()));
 
         return Long.parseLong(claims.getSubject());
     }
 
-    public boolean validateToken(String authToken) {
+    boolean validateToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(appConfig.getJwtSecret()).parseClaimsJws(authToken);
+            Jwts.parser().setSigningKey(jwtConfig.getSecret()).parseClaimsJws(authToken);
+            log.info(String.valueOf(jwtConfig.getSecret()));
+
             return true;
         } catch (SignatureException ex) {
             log.error("Invalid JWT signature = " + authToken);

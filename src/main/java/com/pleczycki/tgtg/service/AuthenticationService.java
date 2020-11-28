@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.service;
 
-import com.pleczycki.tgtg.config.AppConfig;
+import com.pleczycki.tgtg.config.EnvConfig;
 import com.pleczycki.tgtg.dto.UserDto;
 import com.pleczycki.tgtg.model.RoleName;
 import com.pleczycki.tgtg.model.User;
@@ -11,6 +11,7 @@ import com.pleczycki.tgtg.security.JwtTokenProvider;
 import com.pleczycki.tgtg.utils.ApiResponse;
 import com.pleczycki.tgtg.utils.CustomModelMapper;
 import com.pleczycki.tgtg.utils.Mailer;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,11 +30,12 @@ import java.util.*;
 import javax.transaction.Transactional;
 import javax.validation.Valid;
 
+@Slf4j
 @Service("AuthenticationService")
 public class AuthenticationService {
 
     @Autowired
-    private AppConfig appConfig;
+    private EnvConfig envConfig;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -183,7 +185,7 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = appConfig.getWebsiteUrl() +
+        String url = envConfig.getWebsiteUrl() +
                 "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Dziękujemy za zarejestrowanie się na naszej stronie. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
@@ -206,7 +208,7 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = appConfig.getWebsiteUrl() +
+        String url = envConfig.getWebsiteUrl() +
                 "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ podczas prośby o ponowne wysłanie linku aktywacyjnego został podany Twój adres mailowy. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
@@ -229,7 +231,7 @@ public class AuthenticationService {
         }
 
         User user = optionalUser.get();
-        String url = appConfig.getWebsiteUrl() +
+        String url = envConfig.getWebsiteUrl() +
                 "/retrievePassword?userId=" + user.getId() + "&token=" + user
                 .getPassRecoveryToken();
 
@@ -252,7 +254,7 @@ public class AuthenticationService {
         String buttonLabel = "Logowanie";
         String subject = "Too Good To Go - hasło zostało zmienione";
 
-        String url = appConfig.getWebsiteUrl() + "/auth";
+        String url = envConfig.getWebsiteUrl() + "/auth";
 
         try {
             sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
@@ -265,7 +267,7 @@ public class AuthenticationService {
             String subject)
             throws FileNotFoundException {
 
-        File text = new File(appConfig.getEmailMessageFilePath());
+        File text = new File(envConfig.getEmailMessageFilePath());
 
         String emailHtml;
 
@@ -283,7 +285,7 @@ public class AuthenticationService {
                 .replace("{firstParagraph}", firstParagraph)
                 .replace("{secondParagraph}", secondParagraph)
                 .replace("{buttonUrl}", url)
-                .replace("{websiteUrl}", appConfig.getWebsiteUrl());
+                .replace("{websiteUrl}", envConfig.getWebsiteUrl());
 
         mailer.send(email, subject, emailHtml);
     }
