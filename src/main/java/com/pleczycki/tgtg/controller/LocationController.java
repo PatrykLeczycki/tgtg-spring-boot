@@ -54,7 +54,7 @@ public class LocationController {
         return locationService.getAllByCity(city);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get/{id}")
     public Location getReview(@PathVariable Long id) {
         return locationService.getLocation(id);
     }

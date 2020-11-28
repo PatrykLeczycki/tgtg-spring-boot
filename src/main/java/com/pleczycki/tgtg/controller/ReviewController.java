@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -60,7 +59,7 @@ public class ReviewController {
         return reviewService.getLatestLocationReviews(locationId);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get/{id}")
     public Review getReview(@PathVariable Long id) {
         return reviewService.getReview(id);
     }
