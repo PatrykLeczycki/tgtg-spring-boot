@@ -2,7 +2,9 @@ package com.pleczycki.tgtg.controller;
 
 import com.pleczycki.tgtg.dto.UserDto;
 
+import com.pleczycki.tgtg.security.JwtAuthenticationResponse;
 import com.pleczycki.tgtg.service.AuthenticationService;
+import com.pleczycki.tgtg.utils.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +27,8 @@ public class AuthenticationController {
     private AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody UserDto userDto) {
-        ResponseEntity<?> register = authenticationService.register(userDto);
+    public ResponseEntity<ApiResponse> register(@Valid @RequestBody UserDto userDto) {
+        ResponseEntity<ApiResponse> register = authenticationService.register(userDto);
         if (register.getStatusCodeValue() == 200) {
             new Thread(() -> authenticationService.sendRegistrationEmail(userDto.getEmail())).start();
         }
@@ -34,18 +36,18 @@ public class AuthenticationController {
     }
 
     @PostMapping("/confirmAccount")
-    public ResponseEntity<?> confirmAccount(@RequestBody Map<String, String> accountConfirmationData) {
+    public ResponseEntity<ApiResponse> confirmAccount(@RequestBody Map<String, String> accountConfirmationData) {
         return authenticationService.confirmAccount(accountConfirmationData);
     }
 
     @PostMapping("/resendConfirmationLink")
-    public ResponseEntity<?> resendConfirmationLink(@RequestBody Map<String, String> resendConfirmationLinkData) {
+    public ResponseEntity<ApiResponse> resendConfirmationLink(@RequestBody Map<String, String> resendConfirmationLinkData) {
         return authenticationService.resendConfirmationLink(resendConfirmationLinkData);
     }
 
     @PostMapping("/retrievePasswordFirst")
-    public ResponseEntity<?> retrievePasswordFirstStage(@RequestBody Map<String, String> emailData) {
-        ResponseEntity<?> retrieveResponse = authenticationService.retrievePassword(emailData.get("email"));
+    public ResponseEntity<ApiResponse> retrievePasswordFirstStage(@RequestBody Map<String, String> emailData) {
+        ResponseEntity<ApiResponse> retrieveResponse = authenticationService.retrievePassword(emailData.get("email"));
         if (retrieveResponse.getStatusCodeValue() == 200) {
             new Thread(() -> authenticationService.sendPasswordRecoveryEmail(emailData.get("email"))).start();
         }
@@ -53,17 +55,17 @@ public class AuthenticationController {
     }
 
     @PostMapping("/retrievePasswordSecond")
-    public ResponseEntity<?> retrievePasswordSecondStage(@RequestBody Map<String, String> passwordRetrievalData) {
+    public ResponseEntity<ApiResponse> retrievePasswordSecondStage(@RequestBody Map<String, String> passwordRetrievalData) {
         return authenticationService.retrievePassword(passwordRetrievalData);
     }
 
     @PostMapping("/changePassword")
-    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> changePasswordData) {
+    public ResponseEntity<ApiResponse> changePassword(@RequestBody Map<String, String> changePasswordData) {
         return authenticationService.changePassword(changePasswordData);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<JwtAuthenticationResponse> login(@Valid @RequestBody UserDto userDto) {
         return authenticationService.login(userDto);
     }
 }

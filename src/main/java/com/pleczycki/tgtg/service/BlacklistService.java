@@ -7,11 +7,15 @@ import com.pleczycki.tgtg.repository.LocationRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
 import com.pleczycki.tgtg.utils.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service("BlacklistService")
 public class BlacklistService {
@@ -22,24 +26,40 @@ public class BlacklistService {
     @Autowired
     private UserRepository userRepository;
 
-    public ApiResponse addToBlacklist(Map<String, String> locationBlacklistData) {
+    public ResponseEntity<ApiResponse> addToBlacklist(Map<String, String> locationBlacklistData) {
         Long userId = Long.valueOf(locationBlacklistData.get("userId"));
         Long locationId = Long.valueOf(locationBlacklistData.get("locationId"));
-        Location location = locationRepository.getOne(locationId);
-        User user = userRepository.getOne(userId);
+        Optional<Location> optionalLocation = locationRepository.findById(locationId);
+
+        if (optionalLocation.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Location ID not found in database."));
+        }
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+
+        if(optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "User ID not found in database."));
+        }
+
+        Location location = optionalLocation.get();
+        User user = optionalUser.get();
 
         user.getLocationsBlacklist().add(location);
         userRepository.save(user);
-        return new ApiResponse(true, "Location successfully added to blacklist.");
+        return ResponseEntity.ok(new ApiResponse(true, "Location successfully added to blacklist."));
     }
 
-    public List<BlacklistLocationDto> getBlacklist() {
-        List<Location> blacklist = locationRepository.getBlacklist();
-        List<BlacklistLocationDto> completeBlacklist = new ArrayList<>();
-        blacklist.forEach(location -> {
-            int occurences = locationRepository.countLocationOnBlacklist(location.getId());
-            completeBlacklist.add(new BlacklistLocationDto(location, occurences));
+    public ResponseEntity<List<BlacklistLocationDto>> getBlacklist() {
+        List<Location> distinctBlacklist = locationRepository.getDistinctBlacklist();
+        List<Location> blacklistWithDuplicates = locationRepository.getBlacklist();
+
+        List<BlacklistLocationDto> blacklistWithCounts = new ArrayList<>();
+        distinctBlacklist.forEach(location -> {
+            int occurences = Collections.frequency(blacklistWithDuplicates, location);
+            blacklistWithCounts.add(new BlacklistLocationDto(location, occurences));
         });
-        return completeBlacklist;
+        return ResponseEntity.ok(blacklistWithCounts);
     }
 }
