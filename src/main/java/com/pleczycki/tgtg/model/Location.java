@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -53,4 +54,36 @@ public class Location {
     @JsonIgnore
     @OneToMany(mappedBy = "location", cascade = CascadeType.ALL)
     private final List<Review> reviews = new LinkedList<>();
+
+    public Location(Location other) {
+        this.setId(other.getId());
+        this.setName(other.getName());
+        this.setModifiedAt(other.getModifiedAt());
+        this.setCreatedAt(other.getCreatedAt());
+        this.setRating(other.getRating());
+        this.setAddress(other.getAddress());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Location location = (Location) o;
+        return Double.compare(location.rating, rating) == 0 &&
+                Objects.equals(id, location.id) &&
+                Objects.equals(name, location.name) &&
+                Objects.equals(address, location.address) &&
+                Objects.equals(createdAt, location.createdAt) &&
+                Objects.equals(modifiedAt, location.modifiedAt) &&
+                Objects.equals(reviews, location.reviews);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, address, rating, createdAt, modifiedAt, reviews);
+    }
 }
