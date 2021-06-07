@@ -16,4 +16,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query(value = "SELECT * FROM review WHERE location_id = :locationId ORDER BY created_at DESC LIMIT 5", nativeQuery = true)
     List<Review> getLatestLocationReviews(long locationId);
+
+    @Query(value = "DELETE FROM user_review WHERE review_id = :reviewId", nativeQuery = true)
+    void deleteUserReview(long reviewId);
 }

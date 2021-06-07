@@ -75,11 +75,9 @@ public class Address {
         Address address = (Address) o;
         return Double.compare(address.latitude, latitude) == 0 &&
                 Double.compare(address.longitude, longitude) == 0 &&
-                Objects.equals(id, address.id) &&
                 Objects.equals(street, address.street) &&
                 Objects.equals(buildingNo, address.buildingNo) &&
-                Objects.equals(city, address.city) &&
-                Objects.equals(locations, address.locations);
+                Objects.equals(city, address.city);
     }
 
     @Override

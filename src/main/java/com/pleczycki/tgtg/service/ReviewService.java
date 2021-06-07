@@ -62,12 +62,19 @@ public class ReviewService {
 
             review.setLocation(optionalLocation.get());
         } else {
-            reviewDto.getLocation().setCreatedAt(new Date());
-            review.setLocation(reviewDto.getLocation());
+            Optional<Location> existingLocation = locationRepository.findAll().stream().
+                    filter(loc -> loc.equals(reviewDto.getLocation())).
+                    findFirst();
+
+            if (existingLocation.isPresent()) {
+                review.setLocation(existingLocation.get());
+            } else {
+                Objects.requireNonNull(reviewDto.getLocation()).setCreatedAt(new Date());
+                review.setLocation(reviewDto.getLocation());
+            }
         }
 
         review.setCreatedAt(new Date());
-
         return reviewRepository.save(review);
     }
 
@@ -147,6 +154,7 @@ public class ReviewService {
     }
 
     public void delete(Long id) {
+        reviewRepository.deleteUserReview(id);
         reviewRepository.deleteById(id);
     }
 }
