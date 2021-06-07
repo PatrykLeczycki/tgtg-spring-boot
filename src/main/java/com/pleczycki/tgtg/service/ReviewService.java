@@ -80,7 +80,7 @@ public class ReviewService {
 
     @Transactional
     public ResponseEntity<Review> updateReview(ReviewDto reviewDto, Long userId, List<MultipartFile> files,
-            List<String> deletedPhotosIds) {
+                                               List<String> deletedPhotosIds) {
         Review review = updateReview(reviewDto, userId);
         locationService.updateRating(review.getLocation().getId());
         photoService.store(files, review);
