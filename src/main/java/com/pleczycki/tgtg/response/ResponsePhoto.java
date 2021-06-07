@@ -1,4 +1,4 @@
-package com.pleczycki.tgtg.message;
+package com.pleczycki.tgtg.response;
 
 public class ResponsePhoto {
   private String name;

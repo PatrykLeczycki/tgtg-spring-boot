@@ -1,14 +1,14 @@
 package com.pleczycki.tgtg.service;
 
 import com.pleczycki.tgtg.model.Address;
-import com.pleczycki.tgtg.model.BlacklistLocationDto;
+import com.pleczycki.tgtg.dto.BlacklistLocationDto;
 import com.pleczycki.tgtg.model.Location;
 import com.pleczycki.tgtg.model.Role;
 import com.pleczycki.tgtg.model.RoleName;
 import com.pleczycki.tgtg.model.User;
 import com.pleczycki.tgtg.repository.LocationRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

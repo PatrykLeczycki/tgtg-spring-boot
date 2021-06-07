@@ -1,11 +1,11 @@
 package com.pleczycki.tgtg.service;
 
-import com.pleczycki.tgtg.model.BlacklistLocationDto;
+import com.pleczycki.tgtg.dto.BlacklistLocationDto;
 import com.pleczycki.tgtg.model.Location;
 import com.pleczycki.tgtg.model.User;
 import com.pleczycki.tgtg.repository.LocationRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

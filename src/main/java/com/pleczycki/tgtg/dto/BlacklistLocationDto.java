@@ -1,5 +1,6 @@
-package com.pleczycki.tgtg.model;
+package com.pleczycki.tgtg.dto;
 
+import com.pleczycki.tgtg.model.Location;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 

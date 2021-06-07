@@ -4,7 +4,7 @@ import com.pleczycki.tgtg.dto.UserDto;
 
 import com.pleczycki.tgtg.security.JwtAuthenticationResponse;
 import com.pleczycki.tgtg.service.AuthenticationService;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.controller;
 
-import com.pleczycki.tgtg.message.ResponsePhoto;
+import com.pleczycki.tgtg.response.ResponsePhoto;
 import com.pleczycki.tgtg.service.PhotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

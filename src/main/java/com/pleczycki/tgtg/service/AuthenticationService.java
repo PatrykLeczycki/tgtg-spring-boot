@@ -9,7 +9,7 @@ import com.pleczycki.tgtg.repository.RoleRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
 import com.pleczycki.tgtg.security.JwtAuthenticationResponse;
 import com.pleczycki.tgtg.security.JwtTokenProvider;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import com.pleczycki.tgtg.utils.CustomModelMapper;
 import com.pleczycki.tgtg.utils.Mailer;
 import lombok.extern.slf4j.Slf4j;

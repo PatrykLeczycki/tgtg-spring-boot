@@ -7,7 +7,7 @@ import com.pleczycki.tgtg.model.RoleName;
 import com.pleczycki.tgtg.model.User;
 import com.pleczycki.tgtg.repository.RoleRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import com.pleczycki.tgtg.utils.CustomModelMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
