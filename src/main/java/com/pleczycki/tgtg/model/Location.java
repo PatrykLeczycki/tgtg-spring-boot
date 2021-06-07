@@ -73,13 +73,8 @@ public class Location {
             return false;
         }
         Location location = (Location) o;
-        return Double.compare(location.rating, rating) == 0 &&
-                Objects.equals(id, location.id) &&
-                Objects.equals(name, location.name) &&
-                Objects.equals(address, location.address) &&
-                Objects.equals(createdAt, location.createdAt) &&
-                Objects.equals(modifiedAt, location.modifiedAt) &&
-                Objects.equals(reviews, location.reviews);
+        return Objects.equals(name, location.name) &&
+                Objects.equals(address, location.address);
     }
 
     @Override
