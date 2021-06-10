@@ -1,5 +1,6 @@
 package com.pleczycki.tgtg.service;
 
+import com.pleczycki.tgtg.exception.ForeignKeyConstraintFailException;
 import com.pleczycki.tgtg.exception.ResourceNotFoundException;
 import com.pleczycki.tgtg.exception.ResourceAlreadyExists;
 import com.pleczycki.tgtg.dto.LocationDto;
@@ -7,9 +8,12 @@ import com.pleczycki.tgtg.model.Address;
 import com.pleczycki.tgtg.model.Location;
 import com.pleczycki.tgtg.repository.AddressRepository;
 import com.pleczycki.tgtg.repository.LocationRepository;
+import com.pleczycki.tgtg.response.ApiResponse;
 import com.pleczycki.tgtg.utils.CustomModelMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -135,5 +139,27 @@ public class LocationService {
         Location location = optionalLocation.get();
         location.setRating(locationRepository.getAverageRating(locationId));
         locationRepository.save(location);
+    }
+
+    @Modifying
+    @Transactional
+    public ResponseEntity<ApiResponse> delete(Long locationId, String userId) {
+
+        long locationUserId = locationRepository.getLocationUserId(locationId);
+
+        if (locationUserId == Long.parseLong(userId)) {
+
+            Location location = locationRepository.getOne(locationId);
+
+            if(!location.getReviews().isEmpty()) {
+                throw new ForeignKeyConstraintFailException("Location contains reviews");
+            }
+
+            locationRepository.deleteUserLocation(locationId);
+            locationRepository.deleteById(locationId);
+
+            return ResponseEntity.ok(new ApiResponse(true, "Location deleted successfully"));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Deleting location disallowed"));
     }
 }

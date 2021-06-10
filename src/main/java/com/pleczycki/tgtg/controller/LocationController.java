@@ -58,4 +58,9 @@ public class LocationController {
     public ResponseEntity<Location> getReview(@PathVariable Long id) {
         return locationService.getLocation(id);
     }
+
+    @DeleteMapping("/delete/{id}")
+    public void delete(@PathVariable("id") Long locationId, @RequestBody String userId) {
+        locationService.delete(locationId, userId);
+    }
 }
