@@ -172,7 +172,7 @@ class LocationServiceTest {
         when(locationRepository.save(any())).thenReturn(location);
 
         //when
-        ResponseEntity<Location> responseEntity = locationService.addLocation(locationDto);
+        ResponseEntity<Location> responseEntity = locationService.addLocation(locationDto, 1L);
 
         //then
         assertAll(() -> {
