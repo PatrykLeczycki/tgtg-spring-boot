@@ -1,6 +1,7 @@
 package com.pleczycki.tgtg.service;
 
 import com.pleczycki.tgtg.exception.ResourceNotFoundException;
+import com.pleczycki.tgtg.exception.ResourceAlreadyExists;
 import com.pleczycki.tgtg.dto.LocationDto;
 import com.pleczycki.tgtg.model.Address;
 import com.pleczycki.tgtg.model.Location;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,14 +30,28 @@ public class LocationService {
     @Autowired
     private AddressRepository addressRepository;
 
-    public ResponseEntity<Location> addLocation(LocationDto locationDto) {
+    @Autowired
+    private UserService userService;
+
+    @Transactional
+    public ResponseEntity<Location> addLocation(LocationDto locationDto, long userId) {
         Address unfetchedAddress = locationDto.getAddress();
         Address fetchedAddress = addressRepository.save(unfetchedAddress);
         locationDto.setAddress(fetchedAddress);
         Location location = mapper.map(locationDto, Location.class);
         location.setCreatedAt(new Date());
-        Location savedLocation = locationRepository.save(location);
-        return ResponseEntity.ok(savedLocation);
+
+        Optional<Location> existingLocation = locationRepository.findAll().stream().
+                filter(loc -> loc.equals(location)).
+                findFirst();
+
+        if (existingLocation.isPresent()) {
+            throw new ResourceAlreadyExists("Location already exists");
+        } else {
+            Location savedLocation = locationRepository.save(location);
+            userService.addLocation(userId, savedLocation);
+            return ResponseEntity.ok(savedLocation);
+        }
     }
 
     public ResponseEntity<List<Location>> getAll() {
