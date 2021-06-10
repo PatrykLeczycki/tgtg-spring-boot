@@ -40,6 +40,21 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public void addLocation(long userId, Location location) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+
+        if(optionalUser.isEmpty()) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
+        User user = optionalUser.get();
+
+        List<Location> userLocations = user.getLocations();
+        userLocations.add(location);
+        user.setLocations(userLocations);
+        userRepository.save(user);
+    }
+
     public ResponseEntity<List<Location>> getUserBlacklist(long userId) {
         Optional<User> optionalUser = userRepository.findById(userId);
 

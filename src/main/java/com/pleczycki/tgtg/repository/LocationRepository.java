@@ -18,6 +18,9 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
             + "WHERE a.city LIKE :city ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     List<Location> getLatestLocationsByCity(@Param("city") String city);
 
+    @Query(value = "SELECT * FROM location WHERE id IN (SELECT location_id FROM user_location WHERE user_id = :userId) ORDER BY created_at DESC", nativeQuery = true)
+    List<Location> findAllByUserId(long userId);
+
     @Query(value = "SELECT * FROM location loc WHERE loc.id IN (SELECT DISTINCT location_id FROM user_blacklist)", nativeQuery = true)
     List<Location> getDistinctBlacklist();
 

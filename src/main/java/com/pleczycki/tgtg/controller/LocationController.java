@@ -35,6 +35,11 @@ public class LocationController {
         return locationService.getAll();
     }
 
+    @GetMapping("/all/user/{id}")
+    public ResponseEntity<List<Location>> getAllLocationsByUserId(@PathVariable("id") Long id) {
+        return locationService.getAllLocationsByUserId(id);
+    }
+
     @GetMapping("/map")
     public ResponseEntity<List<Location>> getMap() {
         return locationService.getAll();

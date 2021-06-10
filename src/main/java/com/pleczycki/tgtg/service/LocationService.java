@@ -43,6 +43,11 @@ public class LocationService {
         return ResponseEntity.ok(locations);
     }
 
+    public ResponseEntity<List<Location>> getAllLocationsByUserId(Long userId) {
+        List<Location> locations = locationRepository.findAllByUserId(userId);
+        return ResponseEntity.ok(locations);
+    }
+
     public ResponseEntity<Location> getLocation(Long id) {
         Optional<Location> location = locationRepository.findById(id);
 
