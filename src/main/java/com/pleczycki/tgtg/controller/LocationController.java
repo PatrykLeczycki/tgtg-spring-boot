@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import javax.validation.Valid;
 
 @RestController
 @Slf4j
@@ -20,8 +19,8 @@ public class LocationController {
     private LocationService locationService;
 
     @PostMapping("/add")
-    public ResponseEntity<Location> addLocation(@Valid @RequestBody LocationDto locationDto) {
-        return locationService.addLocation(locationDto);
+    public ResponseEntity<Location> addLocation(@RequestPart("location") LocationDto locationDto, @RequestPart("id") Long userId) {
+        return locationService.addLocation(locationDto, userId);
     }
 
     @PostMapping("/edit/{id}")
@@ -33,6 +32,11 @@ public class LocationController {
     @GetMapping("/all")
     public ResponseEntity<List<Location>> getAll() {
         return locationService.getAll();
+    }
+
+    @GetMapping("/all/user/{id}")
+    public ResponseEntity<List<Location>> getAllLocationsByUserId(@PathVariable("id") Long id) {
+        return locationService.getAllLocationsByUserId(id);
     }
 
     @GetMapping("/map")

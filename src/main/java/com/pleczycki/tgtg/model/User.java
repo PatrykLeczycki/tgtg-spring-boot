@@ -54,6 +54,11 @@ public class User {
                inverseJoinColumns = @JoinColumn(name = "review_id"))
     private List<Review> reviews = new LinkedList<>();
 
+    @OneToMany
+    @JoinTable(name = "user_location", joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "location_id"))
+    private List<Location> locations = new LinkedList<>();
+
     @Exclude
 //    @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
     @ManyToMany
