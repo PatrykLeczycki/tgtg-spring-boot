@@ -6,7 +6,10 @@ import com.pleczycki.tgtg.model.Location;
 import com.pleczycki.tgtg.model.Review;
 import com.pleczycki.tgtg.repository.LocationRepository;
 import com.pleczycki.tgtg.repository.ReviewRepository;
+import com.pleczycki.tgtg.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -153,8 +156,30 @@ public class ReviewService {
         return ResponseEntity.ok(latestLocationReviews);
     }
 
-    public void delete(Long id) {
-        reviewRepository.deleteUserReview(id);
-        reviewRepository.deleteById(id);
+    @Modifying
+    @Transactional
+    public ResponseEntity<ApiResponse> delete(Long reviewId, String userId) {
+
+        long dbUserId = reviewRepository.getUserId(reviewId);
+
+        if (dbUserId == Long.parseLong(userId)) {
+
+            Review review = reviewRepository.getOne(reviewId);
+            Location location = review.getLocation();
+
+            reviewRepository.deleteUserReview(reviewId);
+            reviewRepository.deleteById(reviewId);
+
+            if (reviewRepository.countAllByLocationId(location.getId()) == 0) {
+                location.setRating(0.0);
+            } else {
+                location.setRating(locationRepository.getAverageRating(location.getId()));
+            }
+
+            locationRepository.save(location);
+
+            return ResponseEntity.ok(new ApiResponse(true, "Review deleted successfully"));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Deleting review disallowed"));
     }
 }

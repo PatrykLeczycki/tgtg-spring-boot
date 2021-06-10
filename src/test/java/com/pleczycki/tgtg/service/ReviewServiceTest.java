@@ -355,7 +355,7 @@ class ReviewServiceTest {
         when(reviewRepository.getOne(any())).thenReturn(reviewWithExistingLocation);
 
         //when
-        reviewService.delete(1L);
+        reviewService.delete(1L, "1");
         verify(reviewRepository, times(1)).deleteById(anyLong());
 
         assertThrows(ResourceNotFoundException.class, () -> {

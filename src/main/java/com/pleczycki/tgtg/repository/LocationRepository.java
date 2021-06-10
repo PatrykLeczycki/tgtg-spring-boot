@@ -2,9 +2,11 @@ package com.pleczycki.tgtg.repository;
 
 import com.pleczycki.tgtg.model.Location;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.transaction.Transactional;
 import java.util.List;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
@@ -29,4 +31,12 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
 
     @Query(value = "SELECT COUNT(*) FROM user_blacklist WHERE location_id = :locationId", nativeQuery = true)
     int countLocationOnBlacklist(@Param("locationId") Long locationId);
+
+    @Query(value = "SELECT user_id FROM user_location WHERE location_id = :locationId", nativeQuery = true)
+    long getLocationUserId(long locationId);
+
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE FROM user_location WHERE location_id = :locationId", nativeQuery = true)
+    void deleteUserLocation(long locationId);
 }
