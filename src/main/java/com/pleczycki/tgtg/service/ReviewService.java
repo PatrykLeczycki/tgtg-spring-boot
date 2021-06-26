@@ -1,14 +1,16 @@
 package com.pleczycki.tgtg.service;
 
+import com.pleczycki.tgtg.exception.ResourceNotFoundException;
 import com.pleczycki.tgtg.dto.ReviewDto;
 import com.pleczycki.tgtg.model.Location;
 import com.pleczycki.tgtg.model.Review;
-import com.pleczycki.tgtg.model.User;
 import com.pleczycki.tgtg.repository.LocationRepository;
 import com.pleczycki.tgtg.repository.ReviewRepository;
-import com.pleczycki.tgtg.repository.UserRepository;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,19 +24,31 @@ import javax.transaction.Transactional;
 public class ReviewService {
 
     @Autowired
+    private LocationService locationService;
+
+    @Autowired
     private LocationRepository locationRepository;
 
     @Autowired
     private ReviewRepository reviewRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
-    private PhotoService storageService;
+    private PhotoService photoService;
 
     @Transactional
-    public ApiResponse addReview(ReviewDto reviewDto, Long userId, List<MultipartFile> files) {
+    public ResponseEntity<Review> addReview(ReviewDto reviewDto, Long userId, List<MultipartFile> files) {
+        Review review = addReview(reviewDto);
+        userService.addReview(userId, review);
+        photoService.store(files, review);
+        locationService.updateRating(review.getLocation().getId());
+        return ResponseEntity.ok(review);
+    }
+
+    @Transactional
+    public Review addReview(ReviewDto reviewDto) {
         Review review = new Review();
         review.setPickupTime(reviewDto.getPickupTime());
         review.setDiscountPrice(reviewDto.getDiscountPrice());
@@ -42,85 +56,139 @@ public class ReviewService {
         review.setRating(reviewDto.getRating());
         review.setComment(reviewDto.getComment());
 
-        if(Objects.nonNull(reviewDto.getLocation().getId())){
-            Location location = locationRepository.getOne(reviewDto.getLocation().getId());
-            review.setLocation(location);
+        if (Objects.nonNull(reviewDto.getLocation().getId())) {
+            Optional<Location> optionalLocation = locationRepository.findById(reviewDto.getLocation().getId());
+
+            if (optionalLocation.isEmpty()) {
+                throw new ResourceNotFoundException("Location not found");
+            }
+
+            review.setLocation(optionalLocation.get());
         } else {
-            review.setLocation(reviewDto.getLocation());
+            Optional<Location> existingLocation = locationRepository.findAll().stream().
+                    filter(loc -> loc.equals(reviewDto.getLocation())).
+                    findFirst();
+
+            if (existingLocation.isPresent()) {
+                review.setLocation(existingLocation.get());
+            } else {
+                Objects.requireNonNull(reviewDto.getLocation()).setCreatedAt(new Date());
+                Location newLocation = locationRepository.save(reviewDto.getLocation());
+                review.setLocation(newLocation);
+            }
         }
 
-        review.getLocation().setCreatedAt(new Date());
         review.setCreatedAt(new Date());
-
-        User user = userRepository.getOne(userId);
-        Review savedReview = reviewRepository.save(review);
-
-        Location location = locationRepository.getOne(savedReview.getLocation().getId());
-        location.setRating(locationRepository.getAverageRating(location.getId()));
-        locationRepository.save(location);
-
-        storageService.store(files, savedReview);
-
-        List<Review> userReviews = user.getReviews();
-        userReviews.add(savedReview);
-        user.setReviews(userReviews);
-        userRepository.save(user);
-        return new ApiResponse(true, "" + savedReview.getId());
+        return reviewRepository.save(review);
     }
 
-    public List<Review> getAllReviews() {
-        return reviewRepository.findAll();
+    @Transactional
+    public ResponseEntity<Review> updateReview(ReviewDto reviewDto, Long userId, List<MultipartFile> files,
+                                               List<String> deletedPhotosIds) {
+        Review review = updateReview(reviewDto, userId);
+        locationService.updateRating(review.getLocation().getId());
+        photoService.store(files, review);
+        photoService.deletePhotos(deletedPhotosIds);
+        return ResponseEntity.ok(review);
     }
 
-    public List<Review> getAllReviewsByUserId(Long userId) {
-        return reviewRepository.findAllByUserId(userId);
-    }
+    @Transactional
+    public Review updateReview(ReviewDto reviewDto, long reviewId) {
 
-    public List<Review> getLatestReviews(int limit) {
-        return reviewRepository.getLatestReviews(limit);
-    }
+        Optional<Review> optionalReview = reviewRepository.findById(reviewId);
 
-    public Review getReview(Long id) {
-        Optional<Review> review = reviewRepository.findById(id);
-        return review.orElse(null);
-    }
+        if (optionalReview.isEmpty()) {
+            throw new ResourceNotFoundException("Review not found");
+        }
 
-    public List<Review> getLatestLocationReviews(long locationId) {
-        return reviewRepository.getLatestLocationReviews(locationId);
-    }
+        Review review = optionalReview.get();
 
-    public ApiResponse updateReview(ReviewDto reviewDto, long reviewId, List<MultipartFile> files,
-            List<String> deletedPhotosIds) {
-
-        Review review = reviewRepository.getOne(reviewId);
         review.setPickupTime(reviewDto.getPickupTime());
         review.setDiscountPrice(reviewDto.getDiscountPrice());
         review.setStandardPrice(reviewDto.getStandardPrice());
         review.setRating(reviewDto.getRating());
         review.setComment(reviewDto.getComment());
 
-        if(Objects.nonNull(reviewDto.getLocation().getId())){
-            Location location = locationRepository.getOne(reviewDto.getLocation().getId());
-            review.setLocation(location);
+        if (Objects.nonNull(reviewDto.getLocation().getId())) {
+            Optional<Location> optionalLocation = locationRepository.findById(reviewDto.getLocation().getId());
+
+            if (optionalLocation.isEmpty()) {
+                throw new ResourceNotFoundException("Location not found");
+            }
+
+            review.setLocation(optionalLocation.get());
         } else {
-            review.setLocation(reviewDto.getLocation());
+            Optional<Location> existingLocation = locationRepository.findAll().stream().
+                    filter(loc -> loc.equals(reviewDto.getLocation())).
+                    findFirst();
+
+            if (existingLocation.isPresent()) {
+                review.setLocation(existingLocation.get());
+            } else {
+                Objects.requireNonNull(reviewDto.getLocation()).setCreatedAt(new Date());
+                Location newLocation = locationRepository.save(reviewDto.getLocation());
+                review.setLocation(newLocation);
+            }
         }
 
-        review.getLocation().setCreatedAt(new Date());
-        review.setCreatedAt(new Date());
-        Review savedReview = reviewRepository.save(review);
-
-        Location location = locationRepository.getOne(savedReview.getLocation().getId());
-        location.setRating(locationRepository.getAverageRating(location.getId()));
-        locationRepository.save(location);
-
-        storageService.store(files, savedReview);
-        deletedPhotosIds.forEach(id -> storageService.deleteById(id));
-
-        return new ApiResponse(true, "" + savedReview.getId());
+        review.setModifiedAt(new Date());
+        return reviewRepository.save(review);
     }
 
-    public void delete(Long id) {
-        reviewRepository.deleteById(id);
+    public ResponseEntity<List<Review>> getAllReviews() {
+        List<Review> reviews = reviewRepository.findAll();
+        return ResponseEntity.ok(reviews);
+    }
+
+    public ResponseEntity<List<Review>> getAllReviewsByUserId(Long userId) {
+        List<Review> reviews = reviewRepository.findAllByUserId(userId);
+        return ResponseEntity.ok(reviews);
+    }
+
+    public ResponseEntity<List<Review>> getLatestReviews(int limit) {
+        List<Review> reviews = reviewRepository.getLatestReviews(limit);
+        return ResponseEntity.ok(reviews);
+    }
+
+    public ResponseEntity<Review> getReview(Long id) {
+        Optional<Review> review = reviewRepository.findById(id);
+
+        if (review.isEmpty()) {
+            throw new ResourceNotFoundException("Review not found");
+        }
+
+        return ResponseEntity.of(review);
+    }
+
+    public ResponseEntity<List<Review>> getLatestLocationReviews(long locationId) {
+        List<Review> latestLocationReviews = reviewRepository.getLatestLocationReviews(locationId);
+        return ResponseEntity.ok(latestLocationReviews);
+    }
+
+    @Modifying
+    @Transactional
+    public ResponseEntity<ApiResponse> delete(Long reviewId, String userId) {
+
+        long dbUserId = reviewRepository.getUserId(reviewId);
+
+        if (dbUserId == Long.parseLong(userId)) {
+
+            Review review = reviewRepository.getOne(reviewId);
+            Location location = review.getLocation();
+
+            reviewRepository.deleteUserReview(reviewId);
+            reviewRepository.deleteById(reviewId);
+
+            if (reviewRepository.countAllByLocationId(location.getId()) == 0) {
+                location.setRating(0.0);
+            } else {
+                location.setRating(locationRepository.getAverageRating(location.getId()));
+            }
+
+            locationRepository.save(location);
+
+            return ResponseEntity.ok(new ApiResponse(true, "Review deleted successfully"));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Deleting review disallowed"));
     }
 }

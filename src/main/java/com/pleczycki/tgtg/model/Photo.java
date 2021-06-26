@@ -28,7 +28,7 @@ public class Photo {
 
     @ToString.Exclude
     @JsonIgnore
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     private Review review;
 
     public Photo(String name, String type, byte[] data, Review savedReview) {

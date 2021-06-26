@@ -1,14 +1,29 @@
 {
     "properties": [
         {
-            "name": "app.jwtExpirationInMs",
+            "name": "app.jwt.expirationInMs",
             "type": "java.lang.Integer",
             "description": "JWT expiration in milliseconds"
         },
         {
-            "name": "app.jwtSecret",
+            "name": "app.jwt.secret",
             "type": "java.lang.String",
             "description": "JWT secret"
+        },
+        {
+            "name": "app.env.emailPasswordFilePath",
+            "type": "java.lang.String",
+            "description": "Location of text file with e-mail password"
+        },
+        {
+            "name": "app.env.emailMessageFilePath",
+            "type": "java.lang.String",
+            "description": "Location of text file with e-mail message template"
+        },
+        {
+            "name": "app.env.websiteUrl",
+            "type": "java.lang.String",
+            "description": "Website URL"
         }
     ]
 }

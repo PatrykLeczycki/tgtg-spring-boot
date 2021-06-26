@@ -1,4 +1,4 @@
-package com.pleczycki.tgtg.utils;
+package com.pleczycki.tgtg.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

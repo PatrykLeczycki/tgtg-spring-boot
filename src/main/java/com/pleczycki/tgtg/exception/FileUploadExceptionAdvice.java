@@ -1,6 +1,6 @@
 package com.pleczycki.tgtg.exception;
 
-import com.pleczycki.tgtg.message.ResponseMessage;
+import com.pleczycki.tgtg.response.ResponseMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

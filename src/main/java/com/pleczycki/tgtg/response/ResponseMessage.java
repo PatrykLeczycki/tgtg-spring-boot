@@ -1,4 +1,4 @@
-package com.pleczycki.tgtg.message;
+package com.pleczycki.tgtg.response;
 
 public class ResponseMessage {
   private String message;

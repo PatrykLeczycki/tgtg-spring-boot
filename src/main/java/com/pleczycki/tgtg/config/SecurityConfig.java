@@ -78,10 +78,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         "/review/all",
                         "/review/latest",
                         "/review/location/{id}/latest",
+                        "/review/get/**",
                         "/location/all",
                         "/location/map",
                         "/location/map/latest",
                         "/location/all/**",
+                        "/location/get/**",
                         "/files",
                         "/files/**",
                         "/**/*.png")

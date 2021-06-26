@@ -1,5 +1,7 @@
 package com.pleczycki.tgtg.service;
 
+import com.pleczycki.tgtg.exception.ResourceNotFoundException;
+import com.pleczycki.tgtg.config.EnvConfig;
 import com.pleczycki.tgtg.dto.UserDto;
 import com.pleczycki.tgtg.model.RoleName;
 import com.pleczycki.tgtg.model.User;
@@ -7,9 +9,10 @@ import com.pleczycki.tgtg.repository.RoleRepository;
 import com.pleczycki.tgtg.repository.UserRepository;
 import com.pleczycki.tgtg.security.JwtAuthenticationResponse;
 import com.pleczycki.tgtg.security.JwtTokenProvider;
-import com.pleczycki.tgtg.utils.ApiResponse;
+import com.pleczycki.tgtg.response.ApiResponse;
 import com.pleczycki.tgtg.utils.CustomModelMapper;
 import com.pleczycki.tgtg.utils.Mailer;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,8 +31,12 @@ import java.util.*;
 import javax.transaction.Transactional;
 import javax.validation.Valid;
 
+@Slf4j
 @Service("AuthenticationService")
 public class AuthenticationService {
+
+    @Autowired
+    private EnvConfig envConfig;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -53,27 +60,27 @@ public class AuthenticationService {
     private Mailer mailer;
 
     @Transactional
-    public ResponseEntity<?> register(UserDto userDto) {
+    public ResponseEntity<ApiResponse> register(UserDto userDto) {
 
-        if (userRepository.existsByEmail(userDto.getEmail()))
-            return new ResponseEntity(new ApiResponse(false, "Email is already used!"),
-                    HttpStatus.BAD_REQUEST);
-        else {
-            User user = modelMapper.map(userDto, User.class);
-            user.setCreatedAt(new Date());
-            user.setUsername("");
-            user.setPassword(passwordEncoder.encode(userDto.getPassword()));
-            user.setRoles(Collections.singleton(roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(
-                    () -> new RuntimeException("User Role not set.")
-            )));
-            user.setEnabled(false);
-            user.setRegistrationToken(RandomStringUtils.randomAlphanumeric(30));
-            User save = userRepository.save(user);
-            return new ResponseEntity(new ApiResponse(true, "User registered successfully"), HttpStatus.OK);
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Email is already used!"));
         }
+
+        User user = modelMapper.map(userDto, User.class);
+        user.setCreatedAt(new Date());
+        user.setUsername("");
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        user.setRoles(Collections.singleton(roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(
+                () -> new RuntimeException("User Role not set.")
+        )));
+        user.setEnabled(false);
+        user.setRegistrationToken(RandomStringUtils.randomAlphanumeric(30));
+        User save = userRepository.save(user);
+
+        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully"));
     }
 
-    public ResponseEntity<?> login(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<JwtAuthenticationResponse> login(@Valid @RequestBody UserDto userDto) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         userDto.getEmail(),
@@ -87,141 +94,164 @@ public class AuthenticationService {
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 
-    public ResponseEntity<?> confirmAccount(Map<String, String> confirmationData) {
+    public ResponseEntity<ApiResponse> confirmAccount(Map<String, String> confirmationData) {
         Long id = Long.valueOf(confirmationData.get("userId"));
         String token = confirmationData.get("registrationToken");
-        User user = userRepository.getOne(id);
+        Optional<User> optionalUser = userRepository.findById(id);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "E-mail not found"));
+        }
+
+        User user = optionalUser.get();
 
         if (user.getRegistrationToken().equals(token)) {
             user.setRegistrationToken(null);
             user.setEnabled(true);
             userRepository.save(user);
-        } else {
-            return new ResponseEntity(new ApiResponse(false, "Invalid confirmation token"), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.ok(new ApiResponse(true, "Account activated successfully"));
         }
-        return new ResponseEntity(new ApiResponse(true, "Account activated successfully"), HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Invalid confirmation token"));
     }
 
-    public ResponseEntity<?> resendConfirmationLink(Map<String, String> resendConfirmationLinkData) {
+    public ResponseEntity<ApiResponse> resendConfirmationLink(Map<String, String> resendConfirmationLinkData) {
         String email = resendConfirmationLinkData.get("email");
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (optionalUser.isEmpty()) {
-            return new ResponseEntity(new ApiResponse(false, "E-mail not found"), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "E-mail not found"));
         }
 
         User user = optionalUser.get();
 
-        if(!user.isEnabled()) {
+        if (!user.isEnabled()) {
             user.setRegistrationToken(RandomStringUtils.randomAlphanumeric(30));
             User save = userRepository.save(user);
             new Thread(() -> resendConfirmationLinkEmail(save.getEmail())).start();
-            return new ResponseEntity(new ApiResponse(true, "Confirmation link resent successfully"), HttpStatus.OK);
+            return ResponseEntity.ok(new ApiResponse(true, "Confirmation link resent successfully"));
         }
-        return new ResponseEntity(new ApiResponse(false, "User is already activated"), HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "User is already activated"));
     }
 
     @Transactional
-    public ResponseEntity<?> retrievePassword(String email) {
+    public ResponseEntity<ApiResponse> retrievePassword(String email) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (optionalUser.isEmpty()) {
-            return new ResponseEntity(new ApiResponse(false, "E-mail not found"), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "E-mail not found"));
         }
 
         User user = optionalUser.get();
         user.setPassRecoveryToken(RandomStringUtils.randomAlphanumeric(30));
-        return new ResponseEntity(new ApiResponse(true, "Message with password retrieve link sent successfully"), HttpStatus.OK);
+        return ResponseEntity.ok(new ApiResponse(true, "Message with password retrieve link sent successfully"));
     }
 
     @Transactional
-    public ResponseEntity<?> retrievePassword(Map<String, String> passwordRetrievalData) {
+    public ResponseEntity<ApiResponse> retrievePassword(Map<String, String> passwordRetrievalData) {
 
-        User user = userRepository.getOne(Long.valueOf(passwordRetrievalData.get("userId")));
+        Optional<User> optionalUser = userRepository.findById(Long.valueOf(passwordRetrievalData.get("userId")));
         String token = passwordRetrievalData.get("lostPasswordToken");
 
-        if (!Objects.isNull(user) && user.getPassRecoveryToken().equals(token)) {
+        if(optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Invalid password recovery token - user not found."));
+        }
+
+        User user = optionalUser.get();
+
+        if (user.getPassRecoveryToken().equals(token)) {
             user.setPassword(passwordEncoder.encode(passwordRetrievalData.get("password")));
             user.setPassRecoveryToken(null);
             new Thread(() -> sendPasswordChangeEmail(user.getEmail())).start();
             userRepository.save(user);
-        } else {
-            return new ResponseEntity(new ApiResponse(false, "Invalid password recovery token"), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
         }
-
-        return new ResponseEntity(new ApiResponse(true, "Password changed successfully"), HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(false, "Invalid password recovery token"));
     }
 
-    public ResponseEntity<?> changePassword(Map<String, String> changePasswordData) {
+    public ResponseEntity<ApiResponse> changePassword(Map<String, String> changePasswordData) {
         Long userId = Long.valueOf(changePasswordData.get("userId"));
         String currentPassword = changePasswordData.get("currentPassword");
         String newPassword = changePasswordData.get("newPassword");
 
-        User user = userRepository.getOne(userId);
+        Optional<User> optionalUser = userRepository.findById(userId);
+
+        if(optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "User not found."));
+        }
+
+        User user = optionalUser.get();
+
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return new ResponseEntity(new ApiResponse(false, "Current password is incorrect"), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, "Current password is incorrect"));
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         new Thread(() -> sendPasswordChangeEmail(user.getEmail())).start();
-        return new ResponseEntity(new ApiResponse(true, "Password changed successfully"), HttpStatus.OK);
+        return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
     }
 
-    public void sendRegistrationEmail(String receiverEmail) {
+    public void sendRegistrationEmail(String recipientEmail) {
 
-        Optional<User> optionalUser = userRepository.findByEmail(receiverEmail);
+        Optional<User> optionalUser = userRepository.findByEmail(recipientEmail);
 
         if (optionalUser.isEmpty()) {
-            return;
+            throw new ResourceNotFoundException("User with given e-mail address not found");
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
+        String url = envConfig.getWebsiteUrl() +
+                "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Dziękujemy za zarejestrowanie się na naszej stronie. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
         String buttonLabel = "Potwierdzenie rejestracji";
         String subject = "Rejestracja w Too Good To Go";
 
         try {
-            sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
+            sendEmail(recipientEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    public void resendConfirmationLinkEmail(String receiverEmail) {
+    void resendConfirmationLinkEmail(String recipientEmail) {
 
-        Optional<User> optionalUser = userRepository.findByEmail(receiverEmail);
+        Optional<User> optionalUser = userRepository.findByEmail(recipientEmail);
 
         if (optionalUser.isEmpty()) {
-            return;
+            throw new ResourceNotFoundException("User with given e-mail address not found");
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
+        String url = envConfig.getWebsiteUrl() +
+                "/confirmAccount?userId=" + user.getId() + "&token=" + user.getRegistrationToken();
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ podczas prośby o ponowne wysłanie linku aktywacyjnego został podany Twój adres mailowy. Prosimy o wejście w poniższy link w celu dokończenia procesu rejestracji:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
         String buttonLabel = "Potwierdzenie rejestracji";
         String subject = "Too Good To Go - ponowne wysłanie linku aktywacyjnego";
 
         try {
-            sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
+            sendEmail(recipientEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendPasswordRecoveryEmail(String receiverEmail) {
+    public void sendPasswordRecoveryEmail(String recipientEmail) {
 
-        Optional<User> optionalUser = userRepository.findByEmail(receiverEmail);
+        Optional<User> optionalUser = userRepository.findByEmail(recipientEmail);
 
         if (optionalUser.isEmpty()) {
-            return;
+            throw new ResourceNotFoundException("User with given e-mail address not found");
         }
 
         User user = optionalUser.get();
-        String url = "http://tgtg-polska.pl/retrievePassword?userId=" + user.getId() + "&token=" + user.getPassRecoveryToken();
+        String url = envConfig.getWebsiteUrl() +
+                "/retrievePassword?userId=" + user.getId() + "&token=" + user
+                .getPassRecoveryToken();
 
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ podczas prośby o odzyskanie hasła został podany Twój adres mailowy. Kliknij w poniższy link, aby odzyskać hasło:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne.";
@@ -229,41 +259,42 @@ public class AuthenticationService {
         String subject = "Too Good To Go - przypomnienie hasła";
 
         try {
-            sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
+            sendEmail(recipientEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    private void sendPasswordChangeEmail(String receiverEmail) {
+    void sendPasswordChangeEmail(String recipientEmail) {
 
         String firstParagraph = "Otrzymałeś tę wiadomość, ponieważ dokonano zmiany hasła do konta przypisanego do Twojego adresu mailowego. Kliknij w poniższy link, aby przejść do panelu logowania:";
         String secondParagraph = "Jeśli uważasz, że otrzymałeś tę wiadomość omyłkowo, zignoruj ją i upewnij się, że Twoje dane są bezpieczne. Jeśli to nie Ty dokonałeś zmiany hasła, jak najszybciej zabezpiecz swoje dane i skontaktuj się z Administracją.";
         String buttonLabel = "Logowanie";
         String subject = "Too Good To Go - hasło zostało zmienione";
 
-        String url = "http://tgtg-polska.pl/auth";
+        String url = envConfig.getWebsiteUrl() + "/auth";
 
         try {
-            sendEmail(receiverEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
+            sendEmail(recipientEmail, firstParagraph, secondParagraph, url, buttonLabel, subject);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    private void sendEmail(String email, String firstParagraph, String secondParagraph, String url, String buttonLabel, String subject)
+    void sendEmail(String email, String firstParagraph, String secondParagraph, String url, String buttonLabel,
+            String subject)
             throws FileNotFoundException {
 
-        File text = new File("/usr/local/bin/tgtg/registration-email.html");
-//        File text = new File("C:\\Users\\Patryk\\Documents\\tgtg\\src\\main\\resources\\registration-email.html");
+        File text = new File(envConfig.getEmailMessageFilePath());
 
-        //Creating Scanner instnace to read File in Java
-        Scanner scanner = new Scanner(text);
-        String emailHtml = "";
-        //Reading each line of file using Scanner class
+        String emailHtml;
 
-        while (scanner.hasNextLine()) {
-            emailHtml += scanner.nextLine() + "\n";
+        try (Scanner sc = new Scanner(text)) {
+            StringBuilder emailHtmlBuilder = new StringBuilder();
+            while (sc.hasNextLine()) {
+                emailHtmlBuilder.append(sc.nextLine()).append("\n");
+            }
+            emailHtml = emailHtmlBuilder.toString();
         }
 
         emailHtml = emailHtml
@@ -271,7 +302,8 @@ public class AuthenticationService {
                 .replace("{buttonLabel}", buttonLabel)
                 .replace("{firstParagraph}", firstParagraph)
                 .replace("{secondParagraph}", secondParagraph)
-                .replace("{url}", url);
+                .replace("{buttonUrl}", url)
+                .replace("{websiteUrl}", envConfig.getWebsiteUrl());
 
         mailer.send(email, subject, emailHtml);
     }

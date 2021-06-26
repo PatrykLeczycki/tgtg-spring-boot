@@ -15,27 +15,27 @@ import java.util.stream.Stream;
 @Service
 public class PhotoService {
 
-  @Autowired
-  private PhotoRepository photoRepository;
+    @Autowired
+    private PhotoRepository photoRepository;
 
-  public void store(List<MultipartFile> files, Review savedReview) {
+    void store(List<MultipartFile> files, Review savedReview) {
 
-    for (MultipartFile file : files) {
-      try {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-        Photo photo = new Photo(fileName, file.getContentType(), file.getBytes(), savedReview);
-        photoRepository.save(photo);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+        for (MultipartFile file : files) {
+            try {
+                String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+                Photo photo = new Photo(fileName, file.getContentType(), file.getBytes(), savedReview);
+                photoRepository.save(photo);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
-  }
 
-  public Stream<Photo> getAllFiles() {
-    return photoRepository.findAll().stream();
-  }
+    public Stream<Photo> getAllFiles() {
+        return photoRepository.findAll().stream();
+    }
 
-  public void deleteById(String id) {
-    photoRepository.deleteById(id);
-  }
+    void deletePhotos(List<String> deletedPhotosIds) {
+        deletedPhotosIds.forEach(id -> photoRepository.deleteById(id));
+    }
 }
