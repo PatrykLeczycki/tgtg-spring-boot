@@ -28,9 +28,6 @@ public class JwtTokenProvider {
 
         Date expirationDate = new Date(new Date().getTime() + jwtConfig.getExpirationInMs());
 
-        log.info(String.valueOf(jwtConfig.getExpirationInMs()));
-        log.info(String.valueOf(jwtConfig.getSecret()));
-
         return Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
                 .setIssuedAt(new Date())
@@ -47,7 +44,6 @@ public class JwtTokenProvider {
                 .setSigningKey(jwtConfig.getSecret())
                 .parseClaimsJws(token)
                 .getBody();
-        log.info(String.valueOf(jwtConfig.getSecret()));
 
         return Long.parseLong(claims.getSubject());
     }
@@ -55,7 +51,6 @@ public class JwtTokenProvider {
     boolean validateToken(String authToken) {
         try {
             Jwts.parser().setSigningKey(jwtConfig.getSecret()).parseClaimsJws(authToken);
-            log.info(String.valueOf(jwtConfig.getSecret()));
 
             return true;
         } catch (SignatureException ex) {
